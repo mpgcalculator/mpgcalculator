@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Telemetry & Efficiency Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;900&family=Orbitron:wght@500;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #24252C;
+            --shadow-light: #32343E;
+            --shadow-dark: #16171A;
+            --accent-neon: #00FFCC;
+            --accent-warning: #FF3366;
+            --accent-blue: #3399FF;
+            --text-main: #E2E4F0;
+            --text-dim: #7B809A;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background-color: var(--bg-color);
+            font-family: 'Montserrat', sans-serif;
+            color: var(--text-main);
+            min-height: 100vh;
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            overflow-x: hidden;
+        }
+
+        /* Typography */
+        h1, h2, h3 {
+            font-family: 'Orbitron', sans-serif;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .embossed {
+            color: var(--bg-color);
+            text-shadow: 
+                -1px -1px 2px rgba(255, 255, 255, 0.1),
+                1px 1px 2px rgba(0, 0, 0, 0.8),
+                0 0 15px rgba(0, 255, 204, 0.2);
+            font-size: 2.5rem;
+            margin-bottom: 2rem;
+            font-weight: 900;
+            text-align: center;
+        }
+
+        .embossed-sub {
+            color: var(--text-dim);
+            text-shadow: 1px 1px 1px #111, -1px -1px 1px #333;
+            margin-bottom: 1rem;
+            font-size: 1.2rem;
+        }
+
+        /* Vehicle Instance Containers */
+        #dashboards-container {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4rem;
+        }
+
+        .vehicle-instance {
+            width: 100%;
+            max-width: 1300px;
+            position: relative;
+            padding-bottom: 4rem;
+            border-bottom: 2px dashed var(--shadow-light);
+            animation: fadeIn 0.6s ease;
+        }
+
+        .vehicle-instance:last-child {
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+
+        .instance-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            width: 100%;
+        }
+
+        .instance-title {
+            font-family: 'Orbitron', sans-serif;
+            color: var(--accent-neon);
+            font-size: 1.5rem;
+            text-shadow: 0 0 10px rgba(0,255,204,0.3);
+        }
+
+        .btn-remove {
+            background: transparent;
+            border: 2px solid var(--accent-warning);
+            color: var(--accent-warning);
+            border-radius: 8px;
+            padding: 5px 15px;
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-remove:hover {
+            background: var(--accent-warning);
+            color: #fff;
+            box-shadow: 0 0 10px var(--accent-warning);
+        }
+
+        /* Layout */
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(310px, 1fr));
+            gap: 2.5rem;
+            width: 100%;
+        }
+
+        .full-width { grid-column: 1 / -1; }
+
+        /* 3D Neumorphic Panels */
+        .panel {
+            background: var(--bg-color);
+            border-radius: 20px;
+            padding: 2rem;
+            box-shadow: 
+                10px 10px 20px var(--shadow-dark), 
+                -10px -10px 20px var(--shadow-light);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .panel:hover {
+            transform: translateY(-5px);
+            box-shadow: 
+                15px 15px 25px var(--shadow-dark), 
+                -15px -15px 25px var(--shadow-light);
+        }
+
+        /* Form Elements */
+        .form-group { margin-bottom: 1.5rem; }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-size: 0.85rem;
+            color: var(--text-dim);
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        select, input {
+            width: 100%;
+            padding: 12px 15px;
+            background: var(--bg-color);
+            border: none;
+            border-radius: 10px;
+            color: var(--accent-neon);
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 700;
+            font-size: 1rem;
+            box-shadow: 
+                inset 5px 5px 10px var(--shadow-dark), 
+                inset -5px -5px 10px var(--shadow-light);
+            outline: none;
+            transition: all 0.3s ease;
+            -webkit-appearance: none;
+        }
+
+        input.profile-b { color: var(--accent-blue); }
+
+        select:focus, input:focus {
+            box-shadow: 
+                inset 5px 5px 10px var(--shadow-dark), 
+                inset -5px -5px 10px var(--shadow-light),
+                0 0 8px rgba(0, 255, 204, 0.4);
+        }
+
+        /* 3D Buttons */
+        .btn-3d {
+            width: 100%;
+            max-width: 400px;
+            padding: 15px;
+            background: var(--bg-color);
+            border: none;
+            border-radius: 12px;
+            color: var(--text-main);
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 900;
+            font-size: 1.1rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            cursor: pointer;
+            box-shadow: 
+                6px 6px 12px var(--shadow-dark), 
+                -6px -6px 12px var(--shadow-light);
+            transition: all 0.15s ease-in-out;
+            margin: 3rem auto 1rem;
+            display: block;
+        }
+
+        .btn-3d:hover {
+            color: var(--accent-neon);
+            text-shadow: 0 0 8px var(--accent-neon);
+        }
+
+        .btn-3d:active {
+            box-shadow: 
+                inset 6px 6px 12px var(--shadow-dark), 
+                inset -6px -6px 12px var(--shadow-light);
+            color: var(--accent-neon);
+            transform: scale(0.98);
+        }
+
+        /* Speedometer Styles */
+        .speedometer-container {
+            position: relative;
+            width: 100%;
+            height: 180px;
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+            margin-bottom: 1.5rem;
+            overflow: hidden;
+        }
+
+        .gauge {
+            position: relative;
+            width: 260px;
+            height: 130px;
+            background: conic-gradient(from 270deg at 50% 100%, 
+                var(--accent-neon) 0deg, 
+                var(--accent-neon) 45deg, 
+                #FFCC00 90deg, 
+                var(--accent-warning) 135deg, 
+                var(--accent-warning) 180deg, 
+                transparent 180deg);
+            border-radius: 130px 130px 0 0;
+            padding: 10px;
+            box-shadow: 0 0 15px rgba(0,0,0,0.5);
+        }
+
+        .gauge.profile-b {
+            background: conic-gradient(from 270deg at 50% 100%, 
+                var(--accent-blue) 0deg, 
+                var(--accent-blue) 45deg, 
+                #FFCC00 90deg, 
+                var(--accent-warning) 135deg, 
+                var(--accent-warning) 180deg, 
+                transparent 180deg);
+        }
+
+        .gauge-inner {
+            position: absolute;
+            top: 10px; left: 10px; right: 10px; bottom: 0;
+            background: var(--bg-color);
+            border-radius: 120px 120px 0 0;
+            box-shadow: inset 0 8px 12px var(--shadow-dark);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-end;
+            padding-bottom: 5px;
+        }
+
+        .needle {
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            width: 4px;
+            height: 100px;
+            background: var(--accent-warning);
+            transform-origin: bottom center;
+            transform: translateX(-50%) rotate(-90deg);
+            border-radius: 3px 3px 0 0;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.5);
+            transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+            z-index: 10;
+        }
+
+        .needle::after {
+            content: '';
+            position: absolute;
+            bottom: -6px; left: -6px;
+            width: 16px; height: 16px;
+            background: var(--text-main);
+            border-radius: 50%;
+            box-shadow: 0 0 5px rgba(0,0,0,0.5);
+        }
+
+        .speed-readout {
+            font-size: 2.2rem;
+            font-weight: 900;
+            color: #fff;
+            line-height: 1;
+        }
+        
+        .readout-a { text-shadow: 0 0 10px var(--accent-neon); }
+        .readout-b { text-shadow: 0 0 10px var(--accent-blue); }
+
+        .speed-unit { font-size: 0.7rem; color: var(--text-dim); }
+
+        /* Results Box */
+        .result-box {
+            margin-top: 1rem;
+            padding: 1.2rem;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 12px;
+            font-family: 'Orbitron', sans-serif;
+            border-left: 4px solid var(--accent-neon);
+        }
+
+        .result-box.profile-b { border-left-color: var(--accent-blue); }
+        .result-box.delta { border-left-color: #FFCC00; display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem;}
+
+        .result-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.8rem;
+            font-size: 0.85rem;
+            align-items: center;
+        }
+        
+        .result-row:last-child { margin-bottom: 0; }
+
+        .result-value { font-weight: 700; color: var(--text-main); }
+        .val-a { color: var(--accent-neon); }
+        .val-b { color: var(--accent-blue); }
+        .val-warn { color: var(--accent-warning); }
+        .val-good { color: #00FF66; }
+
+        .divider { height: 1px; background: var(--shadow-light); margin: 1rem 0; }
+
+        .loaded-base-module {
+            margin-top: 1rem;
+            padding: 1rem;
+            background: rgba(0, 255, 204, 0.05);
+            border-radius: 10px;
+            border: 1px solid rgba(0, 255, 204, 0.3);
+            text-align: center;
+            display: none;
+            animation: fadeIn 0.5s ease;
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+
+    <h1 class="embossed">Telemetry Dashboard</h1>
+
+    <div id="dashboards-container">
+        <!-- Vehicle modules will be injected here dynamically -->
+    </div>
+
+    <button class="btn-3d" onclick="addVehicle()">+ Add Vehicle to Compare</button>
+
+    <!-- HTML TEMPLATE FOR A VEHICLE MODULE -->
+    <template id="vehicle-template">
+        <div class="instance-header">
+            <div class="instance-title" id="title-__ID__">Vehicle #__ID__</div>
+            <!-- Remove button only shows via CSS or JS if ID > 1 -->
+            <button class="btn-remove" id="btn-remove-__ID__" onclick="removeVehicle(__ID__)" style="display: none;">X Remove</button>
+        </div>
+
+        <div class="dashboard">
+            <!-- Panel 1: Vehicle Data Link -->
+            <div class="panel">
+                <h2 class="embossed-sub">1. Vehicle Data Link</h2>
+                <p style="font-size: 0.8rem; color: var(--text-dim); margin-bottom: 1rem;">
+                    Pull official EPA data from FuelEconomy.gov
+                </p>
+                
+                <div class="form-group">
+                    <label>Year</label>
+                    <select id="sel-year-__ID__" onchange="fetchMakes(__ID__)">
+                        <option value="">Select Year...</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Make</label>
+                    <select id="sel-make-__ID__" onchange="fetchModels(__ID__)" disabled>
+                        <option value="">Select Make...</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Model</label>
+                    <select id="sel-model-__ID__" onchange="fetchOptions(__ID__)" disabled>
+                        <option value="">Select Model...</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Trim / Option</label>
+                    <select id="sel-option-__ID__" onchange="fetchVehicleData(__ID__)" disabled>
+                        <option value="">Select Trim...</option>
+                    </select>
+                </div>
+
+                <div id="loaded-base-module-__ID__" class="loaded-base-module">
+                    <div style="font-size: 0.7rem; color: var(--text-dim); text-transform: uppercase; font-weight: 700; margin-bottom: 5px;">Linked Baseline Economy</div>
+                    <div style="font-size: 1.1rem; color: var(--accent-neon); font-family: 'Orbitron', sans-serif;" id="loaded-base-stats-__ID__">--</div>
+                </div>
+
+                <div id="api-status-__ID__" style="font-size: 0.8rem; color: var(--accent-neon); text-align: center; height: 1rem; margin-top: 1rem;"></div>
+            </div>
+
+            <!-- Panel 2: Profile A -->
+            <div class="panel">
+                <h2 class="embossed-sub">2. Speed Profile A</h2>
+                <div class="speedometer-container">
+                    <div class="gauge">
+                        <div class="gauge-inner">
+                            <div class="speed-readout readout-a" id="speed-display-a-__ID__">65</div>
+                            <div class="speed-unit">MPH</div>
+                        </div>
+                        <div class="needle" id="needle-a-__ID__"></div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Target Speed (0-160 MPH)</label>
+                    <input type="number" id="speed-a-__ID__" min="0" max="160" value="65" oninput="calculateAll(__ID__)">
+                </div>
+                
+                <div class="result-box">
+                    <div class="result-row"><span>Speed Penalty:</span><span class="result-value val-warn" id="pen-a-__ID__">0%</span></div>
+                    <div class="result-row"><span>Active ICE Economy:</span><span class="result-value val-a" id="mpg-a-__ID__">-- MPG</span></div>
+                    <div class="result-row"><span>Active EV Economy:</span><span class="result-value val-a" id="ev-a-__ID__">-- mi/kWh</span></div>
+                    <div class="divider"></div>
+                    <div class="result-row"><span>Time (10 miles):</span><span class="result-value" id="t10-a-__ID__">--</span></div>
+                    <div class="result-row"><span>Time (100 miles):</span><span class="result-value" id="t100-a-__ID__">--</span></div>
+                </div>
+            </div>
+
+            <!-- Panel 3: Profile B -->
+            <div class="panel">
+                <h2 class="embossed-sub">3. Speed Profile B</h2>
+                <div class="speedometer-container">
+                    <div class="gauge profile-b">
+                        <div class="gauge-inner">
+                            <div class="speed-readout readout-b" id="speed-display-b-__ID__">80</div>
+                            <div class="speed-unit">MPH</div>
+                        </div>
+                        <div class="needle" id="needle-b-__ID__"></div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Target Speed (0-160 MPH)</label>
+                    <input type="number" class="profile-b" id="speed-b-__ID__" min="0" max="160" value="80" oninput="calculateAll(__ID__)">
+                </div>
+                
+                <div class="result-box profile-b">
+                    <div class="result-row"><span>Speed Penalty:</span><span class="result-value val-warn" id="pen-b-__ID__">0%</span></div>
+                    <div class="result-row"><span>Active ICE Economy:</span><span class="result-value val-b" id="mpg-b-__ID__">-- MPG</span></div>
+                    <div class="result-row"><span>Active EV Economy:</span><span class="result-value val-b" id="ev-b-__ID__">-- mi/kWh</span></div>
+                    <div class="divider"></div>
+                    <div class="result-row"><span>Time (10 miles):</span><span class="result-value" id="t10-b-__ID__">--</span></div>
+                    <div class="result-row"><span>Time (100 miles):</span><span class="result-value" id="t100-b-__ID__">--</span></div>
+                </div>
+            </div>
+
+            <!-- Panel 4: Delta Analysis -->
+            <div class="panel full-width">
+                <h2 class="embossed-sub" style="text-align: center;">4. Comparative Delta Analysis</h2>
+                <p style="font-size: 0.85rem; color: var(--text-dim); text-align: center; margin-bottom: 1.5rem;" id="delta-narrative-__ID__">
+                    Comparing Profile B vs Profile A
+                </p>
+
+                <div class="result-box delta">
+                    <div>
+                        <h3 style="font-size: 0.9rem; color: var(--text-dim); margin-bottom: 1rem; border-bottom: 1px solid var(--shadow-light); padding-bottom: 5px;">Efficiency Cost/Gain</h3>
+                        <div class="result-row"><span>Δ ICE Economy:</span><span class="result-value" id="delta-mpg-__ID__">-- MPG</span></div>
+                        <div class="result-row"><span>Δ EV Economy:</span><span class="result-value" id="delta-ev-__ID__">-- mi/kWh</span></div>
+                        <div class="result-row"><span>Δ Aerodynamic Penalty:</span><span class="result-value" id="delta-pen-__ID__">-- %</span></div>
+                    </div>
+                    <div>
+                        <h3 style="font-size: 0.9rem; color: var(--text-dim); margin-bottom: 1rem; border-bottom: 1px solid var(--shadow-light); padding-bottom: 5px;">Time Saved/Lost</h3>
+                        <div class="result-row"><span>Δ per 10 Miles:</span><span class="result-value" id="delta-t10-__ID__">--</span></div>
+                        <div class="result-row"><span>Δ per 100 Miles:</span><span class="result-value" id="delta-t100-__ID__">--</span></div>
+                        <div class="result-row"><span>Time Value Ratio:</span><span class="result-value" id="delta-ratio-__ID__" style="font-size: 0.8rem;">--</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <script>
+        // --- State Management ---
+        let instanceCounter = 0;
+        const vehicleStates = {}; // Holds baselines { 1: { mpg: 25.0, ev: 3.5 }, ... }
+
+        // --- Core Application Logic ---
+        function addVehicle() {
+            instanceCounter++;
+            const id = instanceCounter;
+            
+            // Set default baseline for this vehicle instance
+            vehicleStates[id] = { mpg: 25.0, ev: 3.5 };
+
+            // Clone Template
+            const template = document.getElementById('vehicle-template').innerHTML;
+            const html = template.replace(/__ID__/g, id);
+
+            const wrapper = document.createElement('div');
+            wrapper.className = 'vehicle-instance';
+            wrapper.id = `vehicle-wrap-${id}`;
+            wrapper.innerHTML = html;
+
+            document.getElementById('dashboards-container').appendChild(wrapper);
+
+            // Show Remove button only if it's not the first one
+            if (id > 1) {
+                document.getElementById(`btn-remove-${id}`).style.display = 'block';
+            } else {
+                // Rename first vehicle to default
+                document.getElementById(`title-${id}`).innerText = "Primary Vehicle";
+            }
+
+            // Initialize this instance's API dropdown and calculations
+            initAPI(id);
+            calculateAll(id);
+        }
+
+        function removeVehicle(id) {
+            const wrapper = document.getElementById(`vehicle-wrap-${id}`);
+            if (wrapper) wrapper.remove();
+            delete vehicleStates[id];
+        }
+
+        // --- FuelEconomy.gov API Logic (Scoped to ID) ---
+        const apiBase = "https://www.fueleconomy.gov/ws/rest/vehicle";
+
+        async function fetchAPI(endpoint, id) {
+            try {
+                document.getElementById(`api-status-${id}`).innerText = "Connecting to satellite...";
+                const response = await fetch(`${apiBase}${endpoint}`, { headers: { 'Accept': 'application/json' } });
+                const data = await response.json();
+                document.getElementById(`api-status-${id}`).innerText = "";
+                return data.menuItem || data.menuItems?.menuItem || [];
+            } catch (err) {
+                document.getElementById(`api-status-${id}`).innerText = "Connection Failed.";
+                return null;
+            }
+        }
+
+        function parseMenuItems(items) {
+            return Array.isArray(items) ? items : (items ? [items] : []);
+        }
+
+        function initAPI(id) {
+            const currentYear = new Date().getFullYear() + 1;
+            const yearSel = document.getElementById(`sel-year-${id}`);
+            for (let y = currentYear; y >= 1984; y--) {
+                yearSel.add(new Option(y, y));
+            }
+        }
+
+        async function fetchMakes(id) {
+            const year = document.getElementById(`sel-year-${id}`).value;
+            const makeSel = document.getElementById(`sel-make-${id}`);
+            makeSel.innerHTML = '<option value="">Select Make...</option>';
+            document.getElementById(`sel-model-${id}`).innerHTML = '<option value="">Select Model...</option>';
+            document.getElementById(`sel-option-${id}`).innerHTML = '<option value="">Select Trim...</option>';
+            makeSel.disabled = true;
+
+            if (!year) return;
+            const items = parseMenuItems(await fetchAPI(`/menu/make?year=${year}`, id));
+            items.forEach(item => makeSel.add(new Option(item.text, item.value)));
+            makeSel.disabled = false;
+        }
+
+        async function fetchModels(id) {
+            const year = document.getElementById(`sel-year-${id}`).value;
+            const make = document.getElementById(`sel-make-${id}`).value;
+            const modelSel = document.getElementById(`sel-model-${id}`);
+            modelSel.innerHTML = '<option value="">Select Model...</option>';
+            modelSel.disabled = true;
+
+            if (!make) return;
+            const items = parseMenuItems(await fetchAPI(`/menu/model?year=${year}&make=${encodeURIComponent(make)}`, id));
+            items.forEach(item => modelSel.add(new Option(item.text, item.value)));
+            modelSel.disabled = false;
+        }
+
+        async function fetchOptions(id) {
+            const year = document.getElementById(`sel-year-${id}`).value;
+            const make = document.getElementById(`sel-make-${id}`).value;
+            const model = document.getElementById(`sel-model-${id}`).value;
+            const optionSel = document.getElementById(`sel-option-${id}`);
+            optionSel.innerHTML = '<option value="">Select Trim...</option>';
+            optionSel.disabled = true;
+
+            if (!model) return;
+            const items = parseMenuItems(await fetchAPI(`/menu/options?year=${year}&make=${encodeURIComponent(make)}&model=${encodeURIComponent(model)}`, id));
+            items.forEach(item => optionSel.add(new Option(item.text, item.value)));
+            optionSel.disabled = false;
+        }
+
+        async function fetchVehicleData(id) {
+            const vehicleId = document.getElementById(`sel-option-${id}`).value;
+            if (!vehicleId) return;
+
+            document.getElementById(`api-status-${id}`).innerText = "Downloading telemetry...";
+            try {
+                const response = await fetch(`${apiBase}/${vehicleId}`, { headers: { 'Accept': 'application/json' } });
+                const car = await response.json();
+                
+                // Update specific vehicle state
+                if (car.comb08 && car.comb08 > 0) vehicleStates[id].mpg = parseFloat(car.comb08);
+                if (car.combE && car.combE > 0) vehicleStates[id].ev = 100 / parseFloat(car.combE);
+
+                // Update UI Title
+                const year = document.getElementById(`sel-year-${id}`).value;
+                const make = document.getElementById(`sel-make-${id}`).options[document.getElementById(`sel-make-${id}`).selectedIndex].text;
+                const model = document.getElementById(`sel-model-${id}`).options[document.getElementById(`sel-model-${id}`).selectedIndex].text;
+                document.getElementById(`title-${id}`).innerText = `${year} ${make} ${model}`;
+
+                // Show Loaded Baseline Box
+                const baseModule = document.getElementById(`loaded-base-module-${id}`);
+                document.getElementById(`loaded-base-stats-${id}`).innerHTML = `${vehicleStates[id].mpg.toFixed(1)} MPG &nbsp;|&nbsp; ${vehicleStates[id].ev.toFixed(2)} mi/kWh`;
+                baseModule.style.display = 'block';
+                baseModule.style.animation = 'none';
+                baseModule.offsetHeight; /* trigger reflow */
+                baseModule.style.animation = 'fadeIn 0.5s ease';
+
+                document.getElementById(`api-status-${id}`).innerText = "Telemetry Linked.";
+                setTimeout(() => document.getElementById(`api-status-${id}`).innerText = "", 2000);
+                
+                calculateAll(id);
+            } catch (err) {
+                document.getElementById(`api-status-${id}`).innerText = "Failed to parse vehicle data.";
+            }
+        }
+
+        // --- Math & Update Logic (Scoped to ID) ---
+        function updateNeedle(id, profileId, speed) {
+            let s = Math.max(0, Math.min(160, speed));
+            const rotation = (s / 160) * 180 - 90;
+            document.getElementById(`needle-${profileId}-${id}`).style.transform = `translateX(-50%) rotate(${rotation}deg)`;
+            document.getElementById(`speed-display-${profileId}-${id}`).innerText = Math.round(s);
+        }
+
+        function formatTime(minutesDec) {
+            if (!isFinite(minutesDec) || minutesDec === 0) return "--";
+            const h = Math.floor(minutesDec / 60);
+            const m = Math.floor(minutesDec % 60);
+            const s = Math.round((minutesDec * 60) % 60);
+            return h > 0 ? `${h}h ${m}m ${s}s` : `${m}m ${s}s`;
+        }
+
+        function calcProfile(speed, baseMpg, baseEv) {
+            let penaltyPercent = 0;
+            if (speed > 60) penaltyPercent = (speed - 60) * 1.5;
+            else if (speed < 10 && speed > 0) penaltyPercent = 40; 
+            if (penaltyPercent > 80) penaltyPercent = 80;
+
+            const modifier = 1 - (penaltyPercent / 100);
+            return {
+                penalty: penaltyPercent,
+                mpg: baseMpg * modifier,
+                ev: baseEv * modifier,
+                t10: speed > 0 ? (10 / speed) * 60 : 0,
+                t100: speed > 0 ? (100 / speed) * 60 : 0
+            };
+        }
+
+        function styleDeltaText(id, elementPrefix, value, isHigherBetter, unit = "") {
+            const el = document.getElementById(`${elementPrefix}-${id}`);
+            const prefix = value > 0 ? "+" : "";
+            el.innerText = `${prefix}${value.toFixed(1)} ${unit}`;
+            el.className = "result-value";
+            if (value > 0) el.classList.add(isHigherBetter ? "val-good" : "val-warn");
+            else if (value < 0) el.classList.add(isHigherBetter ? "val-warn" : "val-good");
+        }
+
+        function calculateAll(id) {
+            const state = vehicleStates[id];
+            const speedA = parseFloat(document.getElementById(`speed-a-${id}`).value) || 0;
+            const speedB = parseFloat(document.getElementById(`speed-b-${id}`).value) || 0;
+
+            updateNeedle(id, 'a', speedA);
+            updateNeedle(id, 'b', speedB);
+
+            const profA = calcProfile(speedA, state.mpg, state.ev);
+            const profB = calcProfile(speedB, state.mpg, state.ev);
+
+            // Update Card A
+            document.getElementById(`pen-a-${id}`).innerText = `-${profA.penalty.toFixed(1)}%`;
+            document.getElementById(`mpg-a-${id}`).innerText = `${profA.mpg.toFixed(1)} MPG`;
+            document.getElementById(`ev-a-${id}`).innerText = `${profA.ev.toFixed(2)} mi/kWh`;
+            document.getElementById(`t10-a-${id}`).innerText = formatTime(profA.t10);
+            document.getElementById(`t100-a-${id}`).innerText = formatTime(profA.t100);
+
+            // Update Card B
+            document.getElementById(`pen-b-${id}`).innerText = `-${profB.penalty.toFixed(1)}%`;
+            document.getElementById(`mpg-b-${id}`).innerText = `${profB.mpg.toFixed(1)} MPG`;
+            document.getElementById(`ev-b-${id}`).innerText = `${profB.ev.toFixed(2)} mi/kWh`;
+            document.getElementById(`t10-b-${id}`).innerText = formatTime(profB.t10);
+            document.getElementById(`t100-b-${id}`).innerText = formatTime(profB.t100);
+
+            // Update Deltas
+            const dMpg = profB.mpg - profA.mpg;
+            const dEv = profB.ev - profA.ev;
+            const dPen = profB.penalty - profA.penalty;
+            const dT10 = profA.t10 - profB.t10; 
+            const dT100 = profA.t100 - profB.t100;
+
+            styleDeltaText(id, 'delta-mpg', dMpg, true, "MPG");
+            styleDeltaText(id, 'delta-ev', dEv, true, "mi/kWh");
+            styleDeltaText(id, 'delta-pen', dPen, false, "%");
+
+            const t10El = document.getElementById(`delta-t10-${id}`);
+            const t100El = document.getElementById(`delta-t100-${id}`);
+            
+            if (speedA > 0 && speedB > 0) {
+                t10El.innerText = (dT10 >= 0 ? "Saves " : "Loses ") + formatTime(Math.abs(dT10));
+                t100El.innerText = (dT100 >= 0 ? "Saves " : "Loses ") + formatTime(Math.abs(dT100));
+                t10El.className = `result-value ${dT10 >= 0 ? "val-good" : "val-warn"}`;
+                t100El.className = `result-value ${dT100 >= 0 ? "val-good" : "val-warn"}`;
+
+                if (dT100 > 0 && dMpg < 0) {
+                    document.getElementById(`delta-ratio-${id}`).innerText = `Losing ${(Math.abs(dMpg) / dT100).toFixed(2)} MPG per min saved`;
+                } else if (dT100 < 0 && dMpg > 0) {
+                    document.getElementById(`delta-ratio-${id}`).innerText = `Gaining ${(dMpg / Math.abs(dT100)).toFixed(2)} MPG per min lost`;
+                } else {
+                    document.getElementById(`delta-ratio-${id}`).innerText = "--";
+                }
+
+                document.getElementById(`delta-narrative-${id}`).innerHTML = speedB > speedA ? 
+                    `Going <strong style="color:var(--accent-blue)">${speedB} MPH</strong> instead of <strong style="color:var(--accent-neon)">${speedA} MPH</strong> saves time but costs efficiency.` :
+                    speedB < speedA ? `Slowing to <strong style="color:var(--accent-blue)">${speedB} MPH</strong> from <strong style="color:var(--accent-neon)">${speedA} MPH</strong> saves fuel but adds travel time.` :
+                    `Profiles are identical. No delta.`;
+            } else {
+                t10El.innerText = "--";
+                t100El.innerText = "--";
+                document.getElementById(`delta-ratio-${id}`).innerText = "--";
+                document.getElementById(`delta-narrative-${id}`).innerText = "Enter speeds above 0 to compare.";
+            }
+        }
+
+        // --- Init ---
+        window.onload = () => {
+            // Instantiate the first default vehicle block
+            addVehicle();
+        };
+    </script>
+</body>
+</html>
